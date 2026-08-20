@@ -1,0 +1,103 @@
+name: PokeRepo Dex
+description: One Pokémon per repository. Commits level it up, merged pull requests add it to your Dex.
+author: wantaekchoi
+branding: { icon: award, color: red }
+
+inputs:
+  login:
+    description: GitHub user to read. Defaults to whoever runs the workflow.
+    required: false
+  token:
+    description: GitHub token. The default is enough.
+    required: false
+    default: ${{ github.token }}
+  readme:
+    description: File to write the card into. Everything between the POKEREPO:START and POKEREPO:END comments is replaced. Empty skips it.
+    required: false
+    default: README.md
+  state:
+    description: State file. Your Dex and levels accumulate here.
+    required: false
+    default: trainer.json
+  party:
+    description: How many Pokémon the card shows. Every one you have by default.
+    required: false
+    default: "0"
+  columns:
+    description: How many per row. One row by default, which GitHub lets the reader scroll.
+    required: false
+    default: "0"
+  rotate:
+    description: How many slots rotate daily. The rest stay pinned to your highest levels.
+    required: false
+    default: "0"
+  dex:
+    description: Dex page the card links to. Empty removes the link.
+    required: false
+    default: https://wantaekchoi.github.io/pokerepo/
+  sprite:
+    description: Sprite set — animated, artwork, home or front.
+    required: false
+    default: animated
+  tiers:
+    description: Rarity by upstream stars, as "stars:label" separated by commas. Any number of tiers works.
+    required: false
+    default: "10000:Rare,1000:Uncommon,100:Common,0:Everyday"
+  exp-commit:
+    description: Experience for one commit in a repository you own.
+    required: false
+    default: "250"
+  exp-commit-external:
+    description: Experience for one commit that landed in someone else's repository.
+    required: false
+    default: "600"
+  exp-merge:
+    description: Experience for one pull request merged into someone else's repository.
+    required: false
+    default: "3000"
+  exp-merge-own:
+    description: Experience for one pull request merged into your own repository.
+    required: false
+    default: "300"
+  commit:
+    description: Whether to commit the changes automatically.
+    required: false
+    default: "true"
+  commit-message:
+    description: Message for the automatic commit.
+    required: false
+    default: "chore: update pokerepo"
+
+runs:
+  using: composite
+  steps:
+    - uses: actions/setup-node@v4
+      with: { node-version: "20" }
+    - shell: bash
+      env:
+        GITHUB_TOKEN: ${{ inputs.token }}
+        POKEREPO_LOGIN: ${{ inputs.login || github.repository_owner }}
+        POKEREPO_README: ${{ inputs.readme }}
+        POKEREPO_STATE: ${{ inputs.state }}
+        POKEREPO_PARTY: ${{ inputs.party }}
+        POKEREPO_ROTATE: ${{ inputs.rotate }}
+        POKEREPO_COLUMNS: ${{ inputs.columns }}
+        POKEREPO_DEX: ${{ inputs.dex }}
+        POKEREPO_SPRITE: ${{ inputs.sprite }}
+        POKEREPO_TIERS: ${{ inputs.tiers }}
+        POKEREPO_EXP_COMMIT: ${{ inputs['exp-commit'] }}
+        POKEREPO_EXP_COMMIT_EXTERNAL: ${{ inputs['exp-commit-external'] }}
+        POKEREPO_EXP_MERGE: ${{ inputs['exp-merge'] }}
+        POKEREPO_EXP_MERGE_OWN: ${{ inputs['exp-merge-own'] }}
+      run: node "$GITHUB_ACTION_PATH/scripts/update.mjs"
+    - if: inputs.commit == 'true'
+      shell: bash
+      env:
+        MSG: ${{ inputs['commit-message'] }}
+      run: |
+        git config user.name  "github-actions[bot]"
+        git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+        git add -A
+        git diff --staged --quiet && { echo "nothing changed"; exit 0; }
+        git commit -m "$MSG"
+        git push

@@ -1,0 +1,256 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>PokeRepo Dex</title>
+<style>
+  :root{
+    --shell:#c6353a; --shell-dk:#8e2226; --shell-lt:#e05055;
+    --lens:#4c86d6; --lens-hi:#a9cdf7;
+    --led-g:#7fd44a; --led-y:#e8c84a; --led-r:#d9534f;
+    --screen:#171a1e; --screen-2:#20242a; --line:#2c323a;
+    --ink:#edeae0; --ink-dim:#8b939e; --slot:#242930;
+    --mono:ui-monospace,SFMono-Regular,"SF Mono",Menlo,Consolas,monospace;
+    --sans:system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",sans-serif;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--shell);color:var(--ink);font-family:var(--sans);
+    background-image:linear-gradient(180deg,var(--shell-lt) 0%,var(--shell) 22%,var(--shell-dk) 100%);
+    background-attachment:fixed;min-height:100vh}
+  .wrap{max-width:1080px;margin:0 auto;padding:20px 16px 64px}
+
+  /* device top: lens and indicator lights */
+  .top{display:flex;align-items:center;gap:14px;padding:6px 4px 18px}
+  .lens{width:52px;height:52px;border-radius:50%;flex:none;
+    background:radial-gradient(circle at 34% 30%,var(--lens-hi) 0 14%,var(--lens) 38%,#1e4a86 100%);
+    box-shadow:0 0 0 4px #f4f1e8,0 0 0 7px var(--shell-dk),inset 0 2px 6px rgba(255,255,255,.5)}
+  .leds{display:flex;gap:7px}
+  .led{width:13px;height:13px;border-radius:50%;box-shadow:inset 0 1px 2px rgba(255,255,255,.6),0 0 0 2px rgba(0,0,0,.18)}
+  .led.g{background:var(--led-g)} .led.y{background:var(--led-y)} .led.r{background:var(--led-r)}
+  h1{margin:0;font-size:15px;letter-spacing:.22em;text-transform:uppercase;font-weight:800;
+    color:#fff;text-shadow:0 1px 0 var(--shell-dk)}
+  .who{margin:2px 0 0;font-family:var(--mono);font-size:12px;color:#ffdfe0}
+  .src{display:inline-flex;align-items:center;gap:6px;margin-top:14px;color:#ffd2d3;
+    font-family:var(--mono);font-size:11.5px;text-decoration:none}
+  .src:hover{color:#fff;text-decoration:none}
+  .src svg{width:15px;height:15px;fill:currentColor}
+
+  /* screen */
+  .screen{background:var(--screen);border-radius:14px;padding:14px;
+    box-shadow:inset 0 0 0 2px var(--line),inset 0 6px 18px rgba(0,0,0,.55),0 10px 24px rgba(0,0,0,.28)}
+  .bar{display:flex;flex-wrap:wrap;gap:10px 16px;align-items:center;
+    font-family:var(--mono);font-size:12px;color:var(--ink-dim);padding:2px 4px 12px}
+  .bar b{color:var(--ink);font-variant-numeric:tabular-nums}
+  .sep{flex:1}
+  .toggle{display:inline-flex;align-items:center;gap:7px;cursor:pointer;color:var(--ink);
+    background:var(--screen-2);border:1px solid var(--line);border-radius:999px;padding:5px 12px;
+    font-family:var(--mono);font-size:12px}
+  .toggle input{accent-color:var(--led-g);margin:0}
+
+  .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(60px,1fr));gap:5px}
+  .cell{position:relative;aspect-ratio:1;border-radius:7px;background:var(--slot);
+    display:flex;align-items:center;justify-content:center;
+    font-family:var(--mono);font-size:10px;color:#4b525c;font-variant-numeric:tabular-nums}
+  .cell img{width:82%;height:82%;object-fit:contain;image-rendering:pixelated}
+  .cell .no{position:absolute;top:3px;left:5px;font-size:9px;color:#6b7280}
+  .cell.seen{background:var(--screen-2);box-shadow:inset 0 0 0 1px var(--line)}
+  .cell.seen img{opacity:.34;filter:grayscale(1)}
+  /* Unowned entries are silhouettes, the way a Pokédex shows what you have only heard of. */
+  .cell.blank img{filter:brightness(0);opacity:.3}
+  .cell.blank .no{color:#4b525c}
+  .cell.blank .q{position:absolute;font-family:var(--mono);font-size:16px;font-weight:700;
+    color:#8b939e;text-shadow:0 1px 3px #000,0 0 6px #000}
+  .cell.caught{background:linear-gradient(180deg,#252b33,#1d2229);box-shadow:inset 0 0 0 1px #3a444f}
+  .cell.caught .no{color:var(--led-g)}
+  .cell:hover .tip{display:block}
+  .tip{display:none;position:absolute;bottom:calc(100% + 6px);left:50%;transform:translateX(-50%);
+    background:#0d0f12;color:var(--ink);border:1px solid var(--line);border-radius:6px;
+    padding:4px 8px;font-size:11px;white-space:nowrap;z-index:5}
+
+  h2{font-size:12px;letter-spacing:.18em;text-transform:uppercase;color:#ffe3e4;margin:28px 4px 10px}
+  table{width:100%;border-collapse:collapse;font-family:var(--mono);font-size:12.5px}
+  .card{background:var(--screen);border-radius:14px;overflow:hidden;
+    box-shadow:inset 0 0 0 2px var(--line),0 10px 24px rgba(0,0,0,.28)}
+  .scroll{overflow-x:auto}
+  th,td{text-align:left;padding:9px 12px;border-bottom:1px solid var(--line);white-space:nowrap}
+  th{color:var(--ink-dim);font-weight:600;font-size:11px;letter-spacing:.08em;text-transform:uppercase}
+  td.n{text-align:right;font-variant-numeric:tabular-nums}
+  tr:last-child td{border-bottom:0}
+  td img{width:30px;height:30px;object-fit:contain;vertical-align:middle;image-rendering:pixelated}
+  a{color:#9dc4ff;text-decoration:none} a:hover{text-decoration:underline}
+  .tag{display:inline-block;padding:1px 7px;border-radius:999px;font-size:10.5px;border:1px solid}
+  .tag.c{color:var(--led-g);border-color:#31572a;background:#1b2a17}
+  .tag.s{color:var(--ink-dim);border-color:var(--line);background:var(--screen-2)}
+
+  pre{margin:0;padding:14px 46px 14px 14px;overflow-x:auto;font-family:var(--mono);
+    font-size:12px;line-height:1.55;color:var(--ink);background:var(--screen)}
+  .snip{position:relative;border-radius:14px;overflow:hidden;margin-bottom:10px;
+    box-shadow:inset 0 0 0 2px var(--line)}
+  .copy{position:absolute;top:9px;right:9px;background:var(--screen-2);color:var(--ink);
+    border:1px solid var(--line);border-radius:6px;padding:4px 10px;font-size:11px;
+    font-family:var(--mono);cursor:pointer}
+  .copy:hover{border-color:#4b5563} .copy.ok{color:var(--led-g);border-color:#31572a}
+  .note{font-size:12.5px;color:#ffe3e4;margin:0 4px 12px;line-height:1.7}
+  .go{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:0 4px 14px}
+  .go input{background:var(--screen);color:var(--ink);border:1px solid var(--line);
+    border-radius:8px;padding:9px 12px;font-family:var(--mono);font-size:12.5px;width:210px}
+  .go input::placeholder{color:var(--ink-dim)}
+  .go a{display:inline-flex;align-items:center;gap:6px;background:var(--screen);color:var(--ink);
+    border:1px solid var(--line);border-radius:8px;padding:9px 14px;font-family:var(--mono);
+    font-size:12.5px;text-decoration:none}
+  .go a:hover{border-color:#4b5563;text-decoration:none}
+  .go a[aria-disabled="true"]{opacity:.4;pointer-events:none}
+  footer{margin-top:34px;padding:0 4px;font-size:11.5px;color:#ffd2d3;line-height:1.7}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <div class="top">
+    <div class="lens" aria-hidden="true"></div>
+    <div class="leds" aria-hidden="true"><i class="led g"></i><i class="led y"></i><i class="led r"></i></div>
+    <div>
+      <h1>PokeRepo Dex</h1>
+      <p class="who" id="who">loading…</p>
+    </div>
+  </div>
+
+  <div class="screen">
+    <div class="bar">
+      <span>caught <b id="nc">0</b></span>
+      <span>seen <b id="ns">0</b></span>
+      <span>total <b id="nt">0</b></span>
+      <span class="sep"></span>
+      <label class="toggle"><input type="checkbox" id="only" checked> owned only</label>
+    </div>
+    <div class="grid" id="grid"></div>
+  </div>
+
+  <h2>Repositories</h2>
+  <div class="card scroll"><table id="repos">
+    <thead><tr><th></th><th>Species</th><th>Repository</th><th class="n">Lv</th><th class="n">Commits</th><th class="n">Merges</th><th></th></tr></thead>
+    <tbody></tbody>
+  </table></div>
+
+  <h2 id="setup">Add to your profile</h2>
+  <p class="note">Your username opens both files already filled in, on a public repository named exactly that.</p>
+  <div class="go">
+    <input id="who-in" placeholder="github username" autocomplete="off" spellcheck="false">
+    <a id="go-wf" aria-disabled="true" href="#">Create the workflow</a>
+    <a id="go-rm" aria-disabled="true" href="#">Open the README</a>
+  </div>
+  <p class="note">In that README, mark where the card goes.</p>
+  <div class="snip"><button class="copy">copy</button><pre id="s1">&lt;!-- POKEREPO:START --&gt;
+&lt;!-- POKEREPO:END --&gt;</pre></div>
+  
+
+  <footer>
+    Unofficial, non-commercial fan project. Not affiliated with or endorsed by Nintendo, Game Freak,
+    Creatures Inc. or The Pokémon Company. Pokémon names and imagery belong to their respective owners.
+    No artwork is stored here; sprites are referenced at the addresses
+    <a href="https://pokeapi.co">PokéAPI</a> reports.
+    <a class="src" href="https://github.com/wantaekchoi/pokerepo" aria-label="Source on GitHub">
+      <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27s1.36.09 2 .27c1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.012 8.012 0 0 0 16 8c0-4.42-3.58-8-8-8z"/></svg>
+      Source
+    </a>
+  </footer>
+</div>
+
+<script>
+const $ = (s) => document.querySelector(s);
+const params = new URLSearchParams(location.search);
+// A profile repository is <user>/<user>, so a bare name is enough; anything else takes owner/repo.
+const asked = params.get('u') || 'wantaekchoi';
+const source = asked.includes('/') ? asked : `${asked}/${asked}`;
+
+const statePath = params.get('s') || 'trainer.json';
+const raw = (repo, file) => `https://raw.githubusercontent.com/${repo}/HEAD/${file}`;
+
+document.querySelectorAll('.copy').forEach((b) => {
+  b.addEventListener('click', async () => {
+    await navigator.clipboard.writeText(b.parentElement.querySelector('pre').innerText);
+    const t = b.textContent; b.textContent = 'copied'; b.classList.add('ok');
+    setTimeout(() => { b.textContent = t; b.classList.remove('ok'); }, 1400);
+  });
+});
+
+const WORKFLOW = `name: pokerepo
+on:
+  schedule: [{ cron: "0 21 * * *" }]
+  workflow_dispatch:
+permissions: { contents: write }
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: wantaekchoi/pokerepo@v1
+`;
+
+// GitHub opens its file editor with the path and body already filled from the query.
+const links = () => {
+  const u = $('#who-in').value.trim().replace(/^@/, '');
+  const on = /^[A-Za-z0-9-]+$/.test(u);
+  const wf = `https://github.com/${u}/${u}/new/HEAD?filename=${encodeURIComponent('.github/workflows/pokerepo.yml')}&value=${encodeURIComponent(WORKFLOW)}`;
+  for (const [el, href] of [[$('#go-wf'), wf], [$('#go-rm'), `https://github.com/${u}/${u}/edit/HEAD/README.md`]]) {
+    el.setAttribute('aria-disabled', String(!on));
+    el.href = on ? href : '#';
+    el.target = '_blank';
+  }
+};
+$('#who-in').addEventListener('input', links);
+$('#who-in').value = asked.split('/')[0];
+links();
+
+(async () => {
+  const [dex, state] = await Promise.all([
+    fetch('dex.json').then((r) => r.json()),
+    fetch(raw(source, statePath)).then((r) => (r.ok ? r.json() : null)).catch(() => null),
+  ]);
+  const cap = (n) => n.replace(/(^|-)([a-z])/g, (_, a, b) => a + b.toUpperCase());
+  const owned = state?.dex ?? {};
+
+  $('#who').textContent = state ? `${state.login} · ${state.updatedAt}` : `${source} ` + ' — no trainer.json found';
+
+  // Dex order, untouched. Empty slots keep only their number.
+  const grid = $('#grid');
+  const cells = dex.map(([id, name, sprite, flat]) => {
+    const own = owned[id];
+    const el = document.createElement('div');
+    el.className = 'cell' + (own ? (own.caught ? ' caught' : ' seen') : ' blank');
+    el.innerHTML = own
+      ? `<span class="no">${id}</span><img src="${sprite}" alt="${name}" loading="lazy">` +
+        `<span class="tip">${cap(name)} · ${own.caught ? 'caught' : 'seen'}</span>`
+      : `<span class="no">${id}</span><img src="${flat ?? sprite}" alt="" loading="lazy">` +
+        `<span class="q">?</span><span class="tip">not seen</span>`;
+    grid.append(el);
+    return { el, own: !!own };
+  });
+
+  const nc = Object.values(owned).filter((c) => c.caught).length;
+  $('#nc').textContent = nc;
+  $('#ns').textContent = Object.keys(owned).length - nc;
+  $('#nt').textContent = dex.length;
+
+  const applyFilter = () => {
+    const on = $('#only').checked;
+    for (const c of cells) c.el.style.display = on && !c.own ? 'none' : '';
+  };
+  $('#only').addEventListener('change', applyFilter);
+  applyFilter();
+
+  const nameOf = new Map(dex.map(([id, name, sprite]) => [id, [name, sprite]]));
+  const rows = Object.entries(state?.repos ?? {}).sort((a, b) => b[1].exp - a[1].exp);
+  $('#repos tbody').innerHTML = rows.map(([full, r]) => {
+    const [name, sprite] = nameOf.get(r.mon ?? r.species) ?? ['?', ''];
+    return `<tr><td><img src="${sprite}" alt=""></td><td>${cap(name)}</td>` +
+      `<td><a href="https://github.com/${full}">${full}</a></td>` +
+      `<td class="n">${r.level ?? ''}</td><td class="n">${r.commits ?? 0}</td><td class="n">${r.merges ?? 0}</td>` +
+      `<td><span class="tag ${r.caught ? 'c' : 's'}">${r.caught ? 'caught' : 'seen'}</span>` +
+      `${r.alive === false ? ' <span class="tag s">parked</span>' : ''}</td></tr>`;
+  }).join('');
+})();
+</script>
+</body>
+</html>
