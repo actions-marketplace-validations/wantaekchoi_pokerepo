@@ -94,7 +94,7 @@ const md = readmePath ? await readFile(readmePath, 'utf8').catch(() => '') : '';
 const framed = md.includes(START) && md.includes(END);
 if (framed) {
   await writeFile(readmePath,
-    md.slice(0, md.indexOf(START) + START.length) + '\n' + card(lineup, columns, dexUrl) + '\n' + md.slice(md.indexOf(END)));
+    md.slice(0, md.indexOf(START) + START.length) + '\n' + card(lineup, columns, dexUrl, login) + '\n' + md.slice(md.indexOf(END)));
 }
 
 const caught = Object.values(state.dex).filter((c) => c.caught).length;

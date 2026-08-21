@@ -1,5 +1,7 @@
 # PokeRepo
 
+[English](README.md) · [한국어](README.ko.md)
+
 One Pokémon per repository. Commits level it up, merged pull requests add it to your Dex.
 
 ## Setup

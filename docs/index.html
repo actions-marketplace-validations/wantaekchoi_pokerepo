@@ -31,8 +31,9 @@
   h1{margin:0;font-size:15px;letter-spacing:.22em;text-transform:uppercase;font-weight:800;
     color:#fff;text-shadow:0 1px 0 var(--shell-dk)}
   .who{margin:2px 0 0;font-family:var(--mono);font-size:12px;color:#ffdfe0}
-  .src{display:inline-flex;align-items:center;gap:6px;margin-top:14px;color:#ffd2d3;
-    font-family:var(--mono);font-size:11.5px;text-decoration:none}
+  /* Its own row: inline it rides the disclaimer's baseline and reads as part of the sentence. */
+  .src{display:flex;width:fit-content;align-items:center;gap:6px;margin-top:14px;color:#ffd2d3;
+    font-family:var(--mono);font-size:11.5px;line-height:1;text-decoration:none}
   .src:hover{color:#fff;text-decoration:none}
   .src svg{width:15px;height:15px;fill:currentColor}
 

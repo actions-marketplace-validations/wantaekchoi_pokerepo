@@ -28,11 +28,14 @@ const cell = (p, width, dexUrl) => {
   );
 };
 
-export function card(lineup, columns, dexUrl) {
+export function card(lineup, columns, dexUrl, login) {
   // 0 keeps everything on one row; GitHub wraps wide tables in a scrolling container.
   const per = columns || lineup.length || 1;
   const width = Math.floor(WIDTH / Math.min(per, lineup.length || 1));
   const rows = lineup.reduce((acc, p, i) => (i % per ? acc : [...acc, lineup.slice(i, i + per)]), []);
   const table = ['<table>', ...rows.map((r) => `<tr>\n${r.map((p) => cell(p, width, dexUrl)).join('\n')}\n</tr>`), '</table>'];
-  return [...table, ...(dexUrl ? ['', `<sub><a href="${dexUrl}">Dex</a></sub>`] : [])].join('\n');
+  // The card shows a party; the Dex holds every entry and every repository. Naming the
+  // owner says whose it is on a profile a stranger is reading.
+  const label = login ? `${login}'s Dex` : 'Dex';
+  return [...table, ...(dexUrl ? ['', `<sub><a href="${dexUrl}">${label}</a></sub>`] : [])].join('\n');
 }
