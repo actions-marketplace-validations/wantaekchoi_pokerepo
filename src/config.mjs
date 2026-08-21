@@ -31,9 +31,30 @@ export const FALLBACK_LEVEL = { trade: 20, 'use-item': 25, other: 30 };
  * fall back to official artwork on their own.
  */
 export function spriteUrl(species) {
+  return sprite(species).url;
+}
+
+/** Square sets, so one number describes any of them. */
+const SET_SIZE = { artwork: 475, home: 512, front: 96 };
+
+/**
+ * Address plus the size to draw it at. Showdown's animated sprites are trimmed to their
+ * subject, so they run from 32x32 to 153x94; drawn at a fixed width they land at wildly
+ * different heights, and a tall one is drawn past that width entirely. Each is scaled to
+ * fit a box instead, so the ratio holds and nothing exceeds the box on either side.
+ * POKEREPO_SPRITE_SIZE sets it.
+ */
+export function sprite(species) {
   const want = process.env.POKEREPO_SPRITE || 'animated';
+  const box = Number(process.env.POKEREPO_SPRITE_SIZE) || 64;
   for (const k of [want, 'animated', 'artwork', 'home', 'front']) {
-    if (species.sprites?.[k]) return species.sprites[k];
+    const url = species.sprites?.[k];
+    if (!url) continue;
+    const [w, h] = k === 'animated'
+      ? (species.sprites.animatedSize ?? [box, box])
+      : [SET_SIZE[k], SET_SIZE[k]];
+    const scale = Math.min(box / w, box / h);
+    return { url, width: Math.round(w * scale), height: Math.round(h * scale) };
   }
-  return null;
+  return { url: null, width: box, height: box };
 }

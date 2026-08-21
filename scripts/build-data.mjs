@@ -43,6 +43,26 @@ for (const f of data.forms) {
   };
 }
 
+// Only the animated set varies in size — artwork, home and front are square and uniform.
+// Ten bytes of the GIF header carry the dimensions, so a ranged request is enough.
+const gifSize = async (url) => {
+  try {
+    const r = await fetch(url, { headers: { Range: 'bytes=0-9' } });
+    const b = new Uint8Array(await r.arrayBuffer());
+    if (b.length < 10 || b[0] !== 0x47 || b[1] !== 0x49 || b[2] !== 0x46) return null;
+    return [b[6] | (b[7] << 8), b[8] | (b[9] << 8)];
+  } catch {
+    return null;
+  }
+};
+
+const animated = Object.entries(sprites).filter(([, v]) => v.animated);
+for (let i = 0; i < animated.length; i += 32) {
+  const batch = animated.slice(i, i + 32);
+  const sizes = await Promise.all(batch.map(([, v]) => gifSize(v.animated)));
+  batch.forEach(([id], j) => { if (sizes[j]) sprites[id].animatedSize = sizes[j]; });
+}
+
 const curves = {};
 for (const e of data.exp) (curves[e.growth_rate_id] ??= {})[e.level] = e.experience;
 
@@ -69,9 +89,20 @@ const species = data.species.map((s) => ({
 await writeFile(new URL('../data/species.json', import.meta.url),
   JSON.stringify({ source: 'PokeAPI GraphQL (BSD-3-Clause data)', builtFrom: species.length, curves, species }));
 
-// A trimmed list for the Dex page: only what the grid draws.
-await writeFile(new URL('../docs/dex.json', import.meta.url), JSON.stringify(
-  species.map((s) => [s.id, s.name, s.sprites.animated ?? s.sprites.artwork ?? s.sprites.front ?? null, s.sprites.front ?? null])
-));
+// What the Dex page draws, plus what an entry needs to work out its next evolution.
+// Positional so the file stays small: the page names the columns when it reads them.
+const flags = (s) => (s.legendary ? 1 : 0) | (s.mythical ? 2 : 0) | (s.baby ? 4 : 0);
+await writeFile(new URL('../docs/dex.json', import.meta.url), JSON.stringify({
+  curves,
+  species: species.map((s) => [
+    s.id, s.name,
+    s.sprites.animated ?? s.sprites.artwork ?? s.sprites.front ?? null,
+    s.sprites.front ?? null,
+    s.gen, s.growthRateId, s.from,
+    s.evo?.trigger ?? null, s.evo?.minLevel ?? null, s.evo?.item ?? null,
+    flags(s),
+    s.sprites.animatedSize ?? null,
+  ]),
+}));
 
 console.log(`species ${species.length} (max id ${Math.max(...species.map((s) => s.id))}) · evolutions ${Object.keys(evo).length} · animated ${species.filter((s) => s.sprites.animated).length} · artwork ${species.filter((s) => s.sprites.artwork).length}`);

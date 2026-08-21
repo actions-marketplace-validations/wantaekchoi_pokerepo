@@ -83,6 +83,9 @@ const lineup = [
   ...Array.from({ length: Math.min(take - pinned, pool.length) }, (_, i) => pool.splice(draw(i) % pool.length, 1)[0]),
 ];
 
+// The page recomputes "commits until it evolves", so it needs the rates this run used.
+state.exp = { commitOwn: EXP.commitOwn, commitExternal: EXP.commitExternal,
+  mergeOwn: EXP.mergeOwn, mergeExternal: EXP.mergeExternal };
 state.updatedAt = today;
 await writeFile(statePath, JSON.stringify(state, null, 2) + '\n');
 

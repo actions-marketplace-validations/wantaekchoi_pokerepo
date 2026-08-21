@@ -39,6 +39,10 @@ inputs:
     description: Sprite set — animated, artwork, home or front.
     required: false
     default: animated
+  sprite-size:
+    description: Box each sprite is fitted into, in pixels. The ratio is kept, so this is the longer side.
+    required: false
+    default: "64"
   tiers:
     description: Rarity by upstream stars, as "stars:label" separated by commas. Any number of tiers works.
     required: false
@@ -84,6 +88,7 @@ runs:
         POKEREPO_COLUMNS: ${{ inputs.columns }}
         POKEREPO_DEX: ${{ inputs.dex }}
         POKEREPO_SPRITE: ${{ inputs.sprite }}
+        POKEREPO_SPRITE_SIZE: ${{ inputs.sprite-size }}
         POKEREPO_TIERS: ${{ inputs.tiers }}
         POKEREPO_EXP_COMMIT: ${{ inputs['exp-commit'] }}
         POKEREPO_EXP_COMMIT_EXTERNAL: ${{ inputs['exp-commit-external'] }}
