@@ -31,7 +31,12 @@ const textCell = (p, dexUrl) => {
   const repoUrl = `https://github.com/${p.upstream}`;
   const repo = p.upstream.split('/')[1];
   // Repository names run from six characters to thirty-five; untrimmed they stretch their column.
-  const label = repo.length > 12 ? `${repo.slice(0, 11)}…` : repo;
+  // Hyphens are where a browser breaks a line, and repository names are full of them, so
+  // egovframe-msa-common came out over two lines while kbotop took one and the row of
+  // labels went ragged. A non-breaking hyphen keeps each label whole; the title attribute
+  // and the link still carry the real name.
+  const trimmed = repo.length > 12 ? `${repo.slice(0, 11)}…` : repo;
+  const label = trimmed.replaceAll('-', '‑');
   const parked = p.alive ? '' : ' · parked';
   return (
     `<td align="center" valign="top">` +
