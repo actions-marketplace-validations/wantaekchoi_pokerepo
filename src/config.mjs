@@ -37,16 +37,24 @@ export function spriteUrl(species) {
 /** Square sets, so one number describes any of them. */
 const SET_SIZE = { artwork: 475, home: 512, front: 96 };
 
+/** The square each sprite is drawn to fit. POKEREPO_SPRITE_SIZE sets it. */
+export const spriteBox = () => Number(process.env.POKEREPO_SPRITE_SIZE) || 64;
+
 /**
  * Address plus the size to draw it at. Showdown's animated sprites are trimmed to their
- * subject, so they run from 32x32 to 153x94; drawn at a fixed width they land at wildly
- * different heights, and a tall one is drawn past that width entirely. Each is scaled to
- * fit a box instead, so the ratio holds and nothing exceeds the box on either side.
- * POKEREPO_SPRITE_SIZE sets it.
+ * subject, so they run from Swinub at 35x25 to Lugia at 153x94; drawn at a fixed width
+ * they land at wildly different heights, and a tall one is drawn past that width
+ * entirely. Each is scaled to fit a box instead, so the ratio holds and nothing exceeds
+ * the box on either side.
+ *
+ * Only 16 of the 649 animated sets are square, so the drawn size reaches the box on one
+ * axis and falls short on the other. Two species side by side therefore get different
+ * heights — the card gives them a fixed square slot to stand in rather than letting each
+ * one set its own.
  */
 export function sprite(species) {
   const want = process.env.POKEREPO_SPRITE || 'animated';
-  const box = Number(process.env.POKEREPO_SPRITE_SIZE) || 64;
+  const box = spriteBox();
   for (const k of [want, 'animated', 'artwork', 'home', 'front']) {
     const url = species.sprites?.[k];
     if (!url) continue;

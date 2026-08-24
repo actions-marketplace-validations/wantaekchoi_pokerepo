@@ -1,28 +1,41 @@
 // The card is plain markup: an image per repository, wrapped in a link to it.
 // No artwork is embedded — every sprite is referenced where PokéAPI reports it.
-import { sprite } from './config.mjs';
+import { sprite, spriteBox } from './config.mjs';
 
 const cap = (n) => n.replace(/(^|-)([a-z])/g, (_, a, b) => a + b.toUpperCase());
 const WIDTH = 880; // roughly the readable width of a rendered README
 
-const cell = (p, width, dexUrl) => {
+const monUrlOf = (p, dexUrl) =>
+  (dexUrl ? `${dexUrl}&m=${p.mon.id}` : `https://github.com/${p.upstream}`);
+
+// Sprites and names live in separate rows. Sharing a cell made the name sit wherever
+// that sprite happened to end, so a row of six put its names at six different heights —
+// the animated sets are trimmed to their subject and almost none of them are square.
+// A row of its own gives every sprite the same square slot, and the names below line up
+// because table rows do. Bottom, not middle: these stand on ground, and centring makes
+// the short ones (Diglett, Onix) hover.
+const spriteCell = (p, width, dexUrl) => {
+  const { url: src, width: w, height: h } = sprite(p.mon);
+  const box = spriteBox();
+  return (
+    `<td align="center" valign="bottom" width="${width}" height="${box}">` +
+    `<a href="${monUrlOf(p, dexUrl)}" title="${cap(p.mon.name)} in the Dex">` +
+    `<img src="${src}" width="${w}" height="${h}" alt="${p.mon.name}"></a></td>`
+  );
+};
+
+// A README strips style and script, so a cell cannot be made clickable as a block.
+// The sprite and the two names carry the links; the level stays plain, because a
+// measurement rendered in link blue stops reading as a measurement.
+const textCell = (p, dexUrl) => {
   const repoUrl = `https://github.com/${p.upstream}`;
-  // The sprite is the species, so it opens the Dex entry; the name underneath opens the
-  // repository. Without a Dex to link to, everything falls back to the repository.
-  const monUrl = dexUrl ? `${dexUrl}&m=${p.mon.id}` : repoUrl;
   const repo = p.upstream.split('/')[1];
   // Repository names run from six characters to thirty-five; untrimmed they stretch their column.
   const label = repo.length > 12 ? `${repo.slice(0, 11)}…` : repo;
   const parked = p.alive ? '' : ' · parked';
-  // A README strips style and script, so a cell cannot be made clickable as a block.
-  // The sprite and the two names carry the links; the level stays plain, because a
-  // measurement rendered in link blue stops reading as a measurement.
-  const { url: src, width: w, height: h } = sprite(p.mon);
   return (
-    `<td align="center" width="${width}">` +
-    `<a href="${monUrl}" title="${cap(p.mon.name)} in the Dex">` +
-    `<img src="${src}" width="${w}" height="${h}" alt="${p.mon.name}"></a><br>` +
-    `<a href="${monUrl}"><b>${cap(p.mon.name)}</b></a><br>` +
+    `<td align="center" valign="top">` +
+    `<a href="${monUrlOf(p, dexUrl)}"><b>${cap(p.mon.name)}</b></a><br>` +
     `<sub>Lv.${p.level}${parked}</sub><br>` +
     `<sub><a href="${repoUrl}" title="${p.upstream}">${label}</a></sub></td>`
   );
@@ -33,7 +46,10 @@ export function card(lineup, columns, dexUrl, login) {
   const per = columns || lineup.length || 1;
   const width = Math.floor(WIDTH / Math.min(per, lineup.length || 1));
   const rows = lineup.reduce((acc, p, i) => (i % per ? acc : [...acc, lineup.slice(i, i + per)]), []);
-  const table = ['<table>', ...rows.map((r) => `<tr>\n${r.map((p) => cell(p, width, dexUrl)).join('\n')}\n</tr>`), '</table>'];
+  const table = ['<table>', ...rows.flatMap((r) => [
+    `<tr>\n${r.map((p) => spriteCell(p, width, dexUrl)).join('\n')}\n</tr>`,
+    `<tr>\n${r.map((p) => textCell(p, dexUrl)).join('\n')}\n</tr>`,
+  ]), '</table>'];
   // The card shows a party; the Dex holds every entry and every repository. Naming the
   // owner says whose it is on a profile a stranger is reading.
   const label = login ? `${login}'s Dex` : 'Dex';
