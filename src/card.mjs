@@ -31,15 +31,14 @@ const textCell = (p, dexUrl) => {
   const repoUrl = `https://github.com/${p.upstream}`;
   const repo = p.upstream.split('/')[1];
   // Repository names run from six characters to thirty-five; untrimmed they stretch their column.
-  // Hyphens are where a browser breaks a line, and repository names are full of them, so
-  // egovframe-msa-common came out over two lines while kbotop took one and the row of
-  // labels went ragged. A non-breaking hyphen keeps each label whole; the title attribute
-  // and the link still carry the real name.
-  const trimmed = repo.length > 12 ? `${repo.slice(0, 11)}…` : repo;
-  const label = trimmed.replaceAll('-', '‑');
+  const label = repo.length > 12 ? `${repo.slice(0, 11)}…` : repo;
   const parked = p.alive ? '' : ' · parked';
+  // nowrap, because a hyphen is where a browser breaks a line and repository names are
+  // full of them: egovframe-msa-common took two lines while kbotop took one, and the row
+  // of labels went ragged under sprites that had just been lined up. It is the one way a
+  // README can say this — style is stripped and so is <nobr>, but a cell keeps nowrap.
   return (
-    `<td align="center" valign="top">` +
+    `<td align="center" valign="top" nowrap>` +
     `<a href="${monUrlOf(p, dexUrl)}"><b>${cap(p.mon.name)}</b></a><br>` +
     `<sub>Lv.${p.level}${parked}</sub><br>` +
     `<sub><a href="${repoUrl}" title="${p.upstream}">${label}</a></sub></td>`
