@@ -7,6 +7,7 @@ import { EXP } from '../src/config.mjs';
 import { targets } from '../src/targets.mjs';
 import { myCommits } from '../src/sources.mjs';
 import { emptyState, merge, record } from '../src/state.mjs';
+import { isCaught } from '../src/rules.mjs';
 import { card } from '../src/card.mjs';
 
 const num = (k, d) => Number(process.env[k] ?? d);
@@ -36,7 +37,7 @@ state.login = login;
 // A repository keeps the species it was first given, so those are held before any new draw.
 Object.values(state.repos).forEach((r) => dex.reserve(r.species));
 
-const observed = await Promise.all(
+const observed = (await Promise.all(
   (await targets(login)).map(async (t) => {
     const known = state.repos[t.upstream];
     const stars = known?.stars ?? t.info.stargazers_count ?? 0;
@@ -44,16 +45,18 @@ const observed = await Promise.all(
     const commits = await myCommits(t.upstream, login);
     return {
       upstream: t.upstream,
-      caught: t.caught,
+      caught: isCaught({ own: t.own, merges: t.merges, commits }),
       commits,
       merges: t.merges,
       stars,
       speciesId: known?.species ?? dex.assign(t.upstream, stars).sp.id,
       exp: commits * (mine ? EXP.commitOwn : EXP.commitExternal)
         + t.merges * (mine ? EXP.mergeOwn : EXP.mergeExternal),
+      // A pull request that was closed with nothing landed is not an encounter worth a slot.
+      keep: !t.pullOnly || commits > 0 || t.merges > 0,
     };
   })
-);
+)).filter((o) => o.keep);
 merge(state, observed);
 state.trainer.grassExp = Object.values(await import('../src/sources.mjs').then((m) => m.grassDays(login)))
   .reduce((a, lv) => a + (EXP.grassLevel[lv] ?? 0), 0);

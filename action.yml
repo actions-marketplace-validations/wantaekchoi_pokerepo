@@ -1,5 +1,5 @@
 name: PokeRepo Dex
-description: One Pokémon per repository. Commits level it up, merged pull requests add it to your Dex.
+description: One Pokémon per repository. Commits level it up, and work that landed upstream adds it to your Dex.
 author: wantaekchoi
 branding: { icon: award, color: red }
 
@@ -56,7 +56,7 @@ inputs:
     required: false
     default: "600"
   exp-merge:
-    description: Experience for one pull request merged into someone else's repository.
+    description: Experience for one pull request merged into someone else's repository, or closed by a commit of yours that landed there.
     required: false
     default: "3000"
   exp-merge-own:

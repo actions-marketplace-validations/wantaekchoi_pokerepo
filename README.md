@@ -2,7 +2,7 @@
 
 [English](README.md) · [한국어](README.ko.md)
 
-One Pokémon per repository. Commits level it up, merged pull requests add it to your Dex.
+One Pokémon per repository. Commits level it up, and any repository your commits landed in joins your Dex, even when a maintainer rebased them in and closed the pull request.
 
 ## Setup
 

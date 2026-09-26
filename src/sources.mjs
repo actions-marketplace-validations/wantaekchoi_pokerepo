@@ -42,19 +42,37 @@ export async function myRepos(login) {
   return out;
 }
 
-/** Merged pull requests per repository. These survive deleting the fork. */
-export async function mergedRepos(login) {
+/**
+ * Every pull request you opened, merged or not, grouped by repository. Closed ones matter:
+ * a repository where your pull request was closed may still hold your commits.
+ * Search stops at 1000 results, the same ceiling the API puts on any query.
+ */
+export async function pullRequests(login) {
   const out = new Map();
-  const q = encodeURIComponent(`author:${login} type:pr is:merged`);
+  const q = encodeURIComponent(`author:${login} type:pr`);
   for (let page = 1; page <= 10; page++) {
     const r = await api(`/search/issues?q=${q}&per_page=100&page=${page}`);
     for (const it of r?.items ?? []) {
       const full = it.repository_url.split('/repos/')[1];
-      out.set(full, (out.get(full) ?? 0) + 1);
+      const list = out.get(full) ?? [];
+      list.push({ number: it.number, state: it.state, merged: Boolean(it.pull_request?.merged_at) });
+      out.set(full, list);
     }
     if ((r?.items ?? []).length < 100) break;
   }
   return out;
+}
+
+/**
+ * Whether GitHub records this closed pull request as closed by a commit you authored.
+ * A commit only closes a pull request when it lands on the default branch, so the record
+ * itself says the work landed; the author check keeps a maintainer's own rewrite from counting.
+ */
+export async function closedByMyCommit(full, number, login) {
+  const events = await api(`/repos/${full}/issues/${number}/events?per_page=100`);
+  const sha = (events ?? []).find((e) => e.event === 'closed' && e.commit_id)?.commit_id;
+  if (!sha) return false;
+  return (await api(`/repos/${full}/commits/${sha}`))?.author?.login === login;
 }
 
 export const repoStars = async (full) => (await repoInfo(full))?.stargazers_count ?? 0;
