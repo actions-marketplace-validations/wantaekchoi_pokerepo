@@ -9,7 +9,7 @@ export const EXP = {
   // Work that someone else accepted is worth more than work you pushed to yourself.
   commitOwn: num('POKEREPO_EXP_COMMIT', 250), // a commit in a repository you own
   commitExternal: num('POKEREPO_EXP_COMMIT_EXTERNAL', 600), // a commit that landed in someone else's
-  mergeExternal: num('POKEREPO_EXP_MERGE', 3000), // a PR accepted into someone else's repository
+  mergeExternal: num('POKEREPO_EXP_MERGE', 3000), // a PR merged into someone else's, or closed by your landed commit
   mergeOwn: num('POKEREPO_EXP_MERGE_OWN', 300), // a PR you merged into your own
   grassLevel: list('POKEREPO_EXP_GRASS', '0,100,250,450,700').map(Number),
 };
